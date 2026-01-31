@@ -45,21 +45,29 @@ function formatAndSetTitle() {
   const textString = textElement.getText();
   
   // 1. Identify the Delimiter and Split Point
-  let splitIndex = textString.lastIndexOf(" - ");
-  let titleEndIndex; // The index of the last character of the "Title"
+  const delimiterRegex = /[?!-]/g;
+  let match, lastMatch;
+  while ((match = delimiterRegex.exec(textString)) !== null) {
+    lastMatch = match;
+  }
 
-  if (splitIndex !== -1) {
-    // Scenario: "Title - Date"
-    // We want the title to end before the space-dash
-    titleEndIndex = splitIndex - 1;
+  let splitIndex = -1;
+  let titleEndIndex = -1;
+
+  if (lastMatch) {
+    splitIndex = lastMatch.index;
+    // For dashes, title ends before the char. For ? and !, title includes the char.
+    titleEndIndex = (lastMatch[0] === '-') ? splitIndex - 1 : splitIndex;
   } else {
-    splitIndex = textString.lastIndexOf("?");
-    if (splitIndex !== -1) {
-      // Scenario: "Title? Date"
-      // We want the title to include the "?"
-      titleEndIndex = splitIndex;
+    // Fallback: Search for the date pattern (e.g., "Sat 31 Jan 26")
+    const dateRegex = /\s([A-Z][a-z]{2}\s\d{1,2}\s[A-Z][a-z]{2}\s\d{2})/;
+    const dateMatch = textString.match(dateRegex);
+
+    if (dateMatch) {
+      splitIndex = dateMatch.index;
+      titleEndIndex = splitIndex - 1;
     } else {
-      DocumentApp.getUi().alert('No delimiter (" - " or "?") found on the first line.');
+      DocumentApp.getUi().alert('No title delimiter (?, !, -) or date pattern found.');
       return;
     }
   }
@@ -68,9 +76,9 @@ function formatAndSetTitle() {
   const datePart = textString.substring(titleEndIndex + 1);
 
   // --- CONFIGURATION ---
-  const MAX_TITLE_SIZE = 36;
-  const PAGE_WIDTH_POINTS = 502; // Trial and error.  Standard 6.5" printable area
-  const CHAR_WIDTH_FACTOR = 0.42; // Spectral Light factor
+  const MAX_TITLE_SIZE = 34;
+  const PAGE_WIDTH_POINTS = 495; 
+  const CHAR_WIDTH_FACTOR = 0.45; 
   const MIN_FONT_SIZE = 6;
 
   // Approximate width calculation
